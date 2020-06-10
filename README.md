@@ -12,5 +12,5 @@ surprise
 gensim
 
 To launch:
-download the files and go inside the recommender/ directory
+download the files and inside the recommender/ directory
 type *flask run* or *python app.py* in the terminal
