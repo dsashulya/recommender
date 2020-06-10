@@ -1,0 +1,246 @@
+{% extends "layout.html" %} 
+
+{% block main %}
+
+        
+    <div class='container', style="margin-top: 3%;"></div>
+        <form method="POST" id="username-form">
+            <div class="form-row">
+                <div class="col"></div>
+                
+                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" style="max-width: 200px">
+                
+                <button type="submit" class="btn btn-primary" style='margin-left: 3%;'>Find user</button>
+                <div class="col"></div>
+            </div>
+        </form>
+
+        <div class='container', style="margin-top: 3%;"></div>
+
+        <div id="alert">
+        <div class="alert alert-primary" role="alert" id="alert-body">
+          Enter username to see rated items and personalised recommendations.
+        </div>
+      </div>
+
+          <ul class="nav nav-tabs" id="rated-recommended-tab" role="tablist" >
+            <li class="nav-item" role="presentation" style="margin-left: 30%;" id="rated-li">
+              
+            </li>
+
+            <li class="nav-item" id="recommendations" role="presentation" ></li>
+            </ul>
+
+            
+
+            <div class='container', style="margin-top: 1%;"></div>
+          <form method="POST" id="newRatings">
+            <div id="sights">
+
+            {% for attraction in attractions %}
+              <div class="card mb-3" style="max-height: 140px;">
+            <div class="row no-gutters">
+              <div class="col-md-4">
+                <a class="attraction-link" href="https://tripadvisor.co.uk{{ attraction.link }}" target="_blank">
+                <img src="{{ attraction.img }}" class="card-img" style="max-height: 130px;" alt="...">
+            </a>
+              </div>
+              <div class="col-md-8">
+                <div class="card-body">
+                  <h5 class="card-title"><a class="attraction-link" href="https://tripadvisor.co.uk{{ attraction.link }}" target="_blank">{{attraction.title}}</a></h5>
+                  <p class="card-text text-muted">
+                    {{ attraction.rating }}<br>
+                    {{ attraction.reviews | int }} reviews
+                  </p>
+                  
+                </div>
+              </div>
+            </div>
+              </div>
+          {% endfor %}
+            </div>
+
+            <div class="form-group" id="submitRatingsButton">
+              
+              
+            
+        </div>
+      </div>
+
+          </form>
+        <form method="POST" id="loadMoreForm">
+          <div class="form-group" id="loadMore">
+              
+          </div>
+      </form>
+
+      <div style="margin-top: 3%"></div>
+
+
+<script>
+          
+        var current_user; 
+        var attractions; 
+
+        changeAlert = function(text){
+          
+          $("#alert-body").removeClass().attr("class", "alert alert-warning").text( text)
+        }
+        removeAlert = function() {
+          $("#alert").empty()
+        }
+
+        appendRecommended = function(loadmore=false) {
+            $("#recommendations").append('<a class="nav-link" id="recommendations-tab" data-toggle="tab" \
+            href="#" role"tab" aria-controls="recommendations"\
+            ariaselected="false">Recommendations<a>')
+
+      
+        }
+
+        appendLoadMore = function() {
+            
+            $("#loadMore").append($("<button>", {class: "btn btn-primary info loadMoreButton",
+              type: "submit", id: "11", style: "margin-left: 45%", text: "Load more"}))
+        }
+
+        removeLoadMore = function() {
+          $("#loadMore").empty()
+        }
+
+        appendSubmitRatings = function() {
+          if (!document.contains($("#submitRatings")[0])) {
+          $("#submitRatingsButton").append($("<div>", {class: "row"}).
+          append($("<div>", {class: "col"})).
+          append($("<div>", {class: "col"}).
+          append($("<input>", {type: "text", class: "form-control", name: "username", id: "username-disabled", value: current_user, disabled: true}))).
+          append($("<div>", {class: "col"}).
+            append($("<button>", {class: "btn btn-primary", id: "submitRatings",
+                                            type: "submit", text: "Submit ratings"}))).
+            append($("<div>", {class: "col"})))
+          
+          
+          }
+        }
+        
+        removeSubmitRatings = function() {
+          $("#submitRatingsButton").empty()
+        }
+
+        appendNewRating = function() {
+          if (!document.contains($("#new-rating-tab")[0])){
+          $("#new-rating").append('<a class="nav-link" id="new-rating-tab" data-toggle="tab" \
+            href="#" role"tab" aria-controls="new-rating"\
+            ariaselected="false">Add rating<a>')}
+        }
+
+        removeNewRating = function() {
+          $("#newRatingForm").empty()
+        }
+ 
+        $('#username-form').submit(function(e) {
+            e.preventDefault();
+            current_user = $('input[name=username]').val()
+            console.log(current_user)
+
+            $.ajax({
+                type: 'POST',
+                contentType: 'application/json',
+                url: '/get_recommendations',
+                dataType : 'json',
+                data : JSON.stringify({'username': current_user,
+                                      'recommendations': false}),
+                success : function(result) {
+                  console.log(result.length)
+                  
+                  if (result.length > 0 && !document.contains($("#recommendations-tab")[0]))
+                  {
+                    removeAlert()
+                    $("#rated-li").append('<a class="nav-link active" id="rated-tab" data-toggle="tab" href="#rated" role="tab" aria-controls="rated" aria-selected="true">Rated</a>')
+                    appendRecommended()
+                    
+                    appendNewRating()
+                  }
+                  appendAttractions(result, clearId=true, foruser=true, rating=false)
+                  
+                  if (result.length == 0) {
+                    changeAlert(text="User does not exist.")
+                  }
+                },
+                error : function(result){
+                    console.log('ajax error')
+                }
+    });
+        })
+
+        $('#newRatings').submit(function(e) {
+          
+              $("#username-disabled").removeAttr('disabled')
+          
+        });
+
+        $('#recommendations').on("click", function(e){
+          
+          $('#sights').empty()
+          $.ajax({
+                type: 'POST',
+                contentType: 'application/json',
+                url: '/get_recommendations',
+                dataType : 'json',
+                data : JSON.stringify({'username': current_user, 
+                                      'recommendations': true,
+                                      'attractions': false}),
+                success : function(result) {
+                  removeNewRating()
+                  appendAttractions(result, foruser=false, clearId=true)
+                  appendSubmitRatings()
+                  console.log("recommendations appended")
+                  if (result.length > 0 && !document.contains($("#recommendations-tab")[0]))
+                    {appendRecommended()
+                    }
+                  if (!document.contains($(".loadMoreButton")[0])) {
+                    
+                    appendLoadMore()
+                  }
+                  
+                },
+                error : function(result){
+                    console.log('ajax error')
+                }
+    });
+        })
+    
+      
+        $("#rated-li").on("click", function(e) {
+          
+          
+            $.ajax({
+                type: 'POST',
+                contentType: 'application/json',
+                url: '/get_recommendations',
+                dataType : 'json',
+                data : JSON.stringify({'username': current_user,
+                                      'recommendations': false,
+                                      'attractions': false}),
+                success : function(result) {
+                
+                appendAttractions(result, clearId=true, foruser=true, rating=false)
+                if (result.length > 0 && !document.contains($("#recommendations-tab")[0]))
+                {appendRecommended()}
+                appendNewRating()
+                removeLoadMore()
+                removeNewRating()
+                removeSubmitRatings()
+                },
+                error : function(result){
+                    console.log('ajax error')
+                }
+    });
+        
+        })
+    
+        
+          
+   
+    </script>
+{% endblock %}

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+      integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
+      crossorigin="anonymous"
+        />
+        <script   src="https://code.jquery.com/jquery-3.3.1.js"   integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="   crossorigin="anonymous"></script>
+        <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
+        integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+        crossorigin="anonymous"
+        ></script>
+        <script
+        src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
+        integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+        crossorigin="anonymous"
+        ></script>
+    </head>
+
+    <title>TripAdvisor Recommender</title>
+
+    <body class='container'>
+        <nav class="navbar navbar-light bg-light" >
+            <a class="navbar-brand" href="/">Recommender</a>
+            <a class="nav-item nav-link" href="/existing">Find user</a>
+            <a class="nav-item nav-link" href="/add">Add rating</a>
+            
+            </nav>
+        {% block main %}{% endblock %}
+    </body>
+    <style>
+        .attraction-link {
+            color: black;
+        }
+        a:hover {
+            text-decoration: none;
+        }
+        img {
+            object-fit: cover;
+        }
+    </style>
+
+    <script>
+        var ITEMS = {{ITEMS}}
+              
+        appendAttractions = function(attractions, foruser=false, clearId=false, rating=true) {
+            var new_id
+            if (clearId == true) {
+                $('#sights').empty()
+                new_id = 0
+                
+            }
+            if (clearId == false) {
+                new_id = parseInt($(".info").attr("id")) + 10
+                $(".info").attr("id", new_id)
+            }
+            if (new_id >= ITEMS) {
+                $("#loadMore").empty()
+            }
+            
+            for (var i = new_id; i < attractions.length + new_id; i++) {
+                var attraction = attractions[i - new_id]
+                $('#sights').append($('<div>', {class: "card mb-3", style: "max-height: 140px;"}).
+                append($('<div>', {class: "row no-gutters", id: "row-"+i}).
+                append($('<div>', {class: "col-md-4", id: i}).
+                append($('<a>', {class: "attraction-link", href: "https://tripadvisor.co.uk"+attraction.link, target: "_blank"})))))
+
+                $("#"+i).append($("<img>", {src: attraction.img, class: "card-img", style: "max-height: 130px;"}))
+                $("#row-"+i).append($("<div>", {class: "col-md-6"}).
+                append($("<div>", {class: "card-body", id: "card-body-"+i}).
+                append($("<h5>", {class: "card-title"}).
+                append($("<a>", {class: "attraction-link", 
+                                href: "https://tripadvisor.co.uk"+attraction.link, 
+                                target: "_blank",
+                                text: attraction.title})))))
+                $("#card-body-"+i).append($("<p>", {class: "card-text text-muted", 
+                                                    text: (foruser ? attraction.urating : attraction.rating)}).append("<br>")
+                                                    .append(attraction.reviews + " reviews"))
+
+                if (rating == true) {
+                    $("#row-"+i).append($("<div>", {class: "col-md-2"}).
+                    append($("<p>", {class: "card-title", style: "margin-top: 15%", text: "Rating"})).
+                    append($("<select>", {class: "custom-select", id:"select-"+i, name: attraction.item_id, style: "max-width: 75px;"}).
+                    append($("<option>", {value: " ", disabled: true, selected: true}))))
+
+                    for (var j=1; j < 6; j++) {
+                        $("#select-"+i).append($("<option>", {value: j, text: j}))
+                    }
+                }    
+                
+            }
+        }
+    
+        $("#loadMoreForm").submit(function(e) {
+            e.preventDefault();
+            //console.log($('.info').attr('id'))
+            $.ajax({
+                type: 'POST',
+                contentType: 'application/json',
+                url: '/load_more',
+                dataType : 'json',
+                data : JSON.stringify({'index': $('.info').attr('id')}),
+                success : function(result) {
+                appendAttractions(result, foruser=false)
+                },
+                error : function(result){
+                    console.log('error')
+                }
+    });
+        })
+
+    </script>
+</html>
